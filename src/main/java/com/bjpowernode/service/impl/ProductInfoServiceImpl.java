@@ -3,6 +3,7 @@ package com.bjpowernode.service.impl;
 import com.bjpowernode.mapper.ProductInfoMapper;
 import com.bjpowernode.pojo.ProductInfo;
 import com.bjpowernode.pojo.ProductInfoExample;
+import com.bjpowernode.pojo.vo.ProductInfoVo;
 import com.bjpowernode.service.ProductInfoService;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
@@ -68,5 +69,18 @@ public class ProductInfoServiceImpl implements ProductInfoService {
     @Override
     public int deleteBatch(String[] ids) {
         return productInfoMapper.deleteBatch(ids);
+    }
+
+    @Override
+    public List<ProductInfo> selectCondition(ProductInfoVo vo) {
+        return productInfoMapper.selectCondition(vo);
+    }
+
+    @Override
+    public PageInfo splitPageVo(ProductInfoVo vo, int pageSize) {
+        // 设置pageHelper
+        PageHelper.startPage(vo.getPage(), pageSize);
+        List<ProductInfo> productInfoList = productInfoMapper.selectCondition(vo);
+        return new PageInfo<>(productInfoList);
     }
 }

@@ -1,6 +1,7 @@
 package com.bjpowernode.controller;
 
 import com.bjpowernode.pojo.ProductInfo;
+import com.bjpowernode.pojo.vo.ProductInfoVo;
 import com.bjpowernode.service.ProductInfoService;
 import com.bjpowernode.utils.FileNameUtil;
 import com.github.pagehelper.PageInfo;
@@ -48,18 +49,27 @@ public class ProductInfoAction {
     // 显示第一页的5条记录
     @RequestMapping("/split")
     public String split(HttpServletRequest request){
-        // 得到第一页的数据
-        PageInfo info = productInfoService.splitPage(1, PAGE_SIZE);
+        PageInfo info = null;
+        Object vo = request.getSession().getAttribute("prodVo");
+        if (vo != null) {
+            info = productInfoService.splitPageVo((ProductInfoVo) vo, PAGE_SIZE);
+            request.getSession().removeAttribute("prodVo");
+        } else {
+            // 得到第一页的数据
+            info = productInfoService.splitPage(1, PAGE_SIZE);
+        }
         request.setAttribute("info", info);
         return "product";
     }
 
+
     // 分页ajax翻页处理
     @ResponseBody
     @RequestMapping("/ajaxsplit")
-    public void ajaxSplit(int page, HttpSession session) {
+    public void ajaxSplit(ProductInfoVo vo, HttpSession session) {
         // 取得当前page参数页面的数据
-        PageInfo info = productInfoService.splitPage(page, PAGE_SIZE);
+        // PageInfo info = productInfoService.splitPage(page, PAGE_SIZE);
+        PageInfo info = productInfoService.splitPageVo(vo, PAGE_SIZE);
         session.setAttribute("info", info);
     }
 
@@ -107,9 +117,10 @@ public class ProductInfoAction {
     }
 
     @RequestMapping("/one")
-    public String one(int pid, Model model) {
+    public String one(int pid, ProductInfoVo vo, Model model, HttpSession session) {
         ProductInfo info = productInfoService.getById(pid);
         model.addAttribute("prod", info);
+        session.setAttribute("prodVo", vo);
         return "update";
     }
 
@@ -134,7 +145,7 @@ public class ProductInfoAction {
     }
 
     @RequestMapping("/delete")
-    public String delete(Integer pid, HttpServletRequest request) {
+    public String delete(ProductInfoVo vo, Integer pid, HttpServletRequest request) {
         int num = -1;
         try {
             num = productInfoService.delete(pid);
@@ -143,6 +154,7 @@ public class ProductInfoAction {
         }
         if (num > 0) {
             request.setAttribute("msg", "删除成功");
+            request.getSession().setAttribute("deleteProdVo", vo);
         } else {
             request.setAttribute("msg", "删除失败");
         }
@@ -153,7 +165,13 @@ public class ProductInfoAction {
     @RequestMapping(value = "/deleteAjaxSpilt", produces = "text/html;charset=UTF-8")
     public Object deleteAjaxSpilt(HttpServletRequest request) {
         // 取得第一页的数据
-        PageInfo info = productInfoService.splitPage(1, PAGE_SIZE);
+        PageInfo info = null;
+        Object vo = request.getSession().getAttribute("deleteProdVo");
+        if (vo != null) {
+            info = productInfoService.splitPageVo((ProductInfoVo) vo, PAGE_SIZE);
+        } else {
+            info = productInfoService.splitPage(1, PAGE_SIZE);
+        }
         request.getSession().setAttribute("info", info);
         return request.getAttribute("msg");
     }
@@ -175,6 +193,14 @@ public class ProductInfoAction {
             request.setAttribute("msg", "批量删除失败");
         }
         return "forward:/prod/deleteAjaxSpilt.action";
+    }
+
+    // 多条件查询功能
+    @ResponseBody
+    @RequestMapping("/condition")
+    public void condition(ProductInfoVo vo, HttpSession session) {
+        List<ProductInfo> productInfoList = productInfoService.selectCondition(vo);
+        session.setAttribute("list", productInfoList);
     }
 
 }
